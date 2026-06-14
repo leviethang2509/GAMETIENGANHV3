@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High-Performance Infinite Procedural Terrain System</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts for typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom overlays for terrain demo */
+        .info-panel {
+            background: rgba(33, 37, 41, 0.9) !important;
+            border: 1px solid #4dabf7;
+            color: #f8f9fa;
+        }
+        .control-panel button {
+            background-color: #2b8a3e;
+            color: #ffffff;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+        .control-panel button:hover {
+            background-color: #216f31;
+        }
+        .help-list {
+            margin-top: 10px;
+            padding-left: 16px;
+            font-size: 0.85rem;
+            color: #adb5bd;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar controls & statistics -->
+        <aside class="sidebar">
+            <header class="sidebar-header">
+                <div class="logo-container">
+                    <span class="logo-emoji">🏔️</span>
+                    <h1>Infinite Terrain</h1>
+                </div>
+                <p class="subtitle">Procedural Web Worker Streaming</p>
+            </header>
+
+            <section class="model-info-panel">
+                <h2>Engine Statistics</h2>
+                <div id="terrain-stats">
+                    <p class="placeholder-text">Initializing stats...</p>
+                </div>
+            </section>
+
+            <section class="control-panel">
+                <h2>System Config & Info</h2>
+                <div class="control-group">
+                    <span style="color: #adb5bd;">Interaction Mode:</span>
+                    <span id="camera-mode-val" style="font-weight: 700; color: #4dabf7; text-align: right;">Idle Open-World View</span>
+                </div>
+                <div class="control-group" style="margin-top: 10px;">
+                    <span style="color: #adb5bd;">Weather Mode:</span>
+                    <select id="select-weather" style="background-color: #2c3034; color: #f8f9fa; border: 1px solid #495057; border-radius: 4px; padding: 6px 10px; cursor: pointer; outline: none; width: 55%; font-size: 0.85rem;">
+                        <option value="sunny">Sunny (Nắng)</option>
+                        <option value="rainy">Rainy (Mưa)</option>
+                        <option value="snowy">Snowy (Tuyết)</option>
+                        <option value="foggy">Foggy (Sương mù)</option>
+                    </select>
+                </div>
+                
+                <h2 style="margin-top: 20px;">Interaction Controls</h2>
+                <ul class="help-list">
+                    <li><strong>Click / Tap</strong>: Set a target point on the terrain. The camera will smoothly glide towards it.</li>
+                    <li><strong>No Keys Required</strong>: System operates purely via click/tap and includes a slow automatic drift when idle.</li>
+                </ul>
+
+                <button id="btn-reset-pos">Reset Position</button>
+            </section>
+
+            <footer class="sidebar-footer">
+                <p>&copy; 2026 Game Nông Trại V3</p>
+                <p class="tech-stack">Three.js / Web Workers / Coherent Noise</p>
+            </footer>
+        </aside>
+
+        <!-- Main 3D View Container -->
+        <main class="viewer-container">
+            <div id="canvas-container"></div>
+            
+            <!-- Navigation Guide Overlay at the bottom -->
+            <div class="navigation-guide">
+                <p>🏔️ Click/Tap on the terrain to guide the camera. Let it sit idle to drift slowly.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Load Three.js core via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- Load our self-contained terrain system script -->
+    <script src="js/viewer.js"></script>
+    
+    <!-- Launch the application -->
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const system = new TerrainSystem('canvas-container', 'terrain-stats');
+            
+            // Hook reset button
+            document.getElementById('btn-reset-pos').addEventListener('click', () => {
+                system.camera.position.set(0, 100, 160);
+                system.accumulatedShift.set(0, 0, 0);
+                if (system.inputController) {
+                    system.inputController.targetCameraPosition.set(0, 100, 160);
+                    system.inputController.targetLookAt.set(0, 0, 0);
+                    system.inputController.currentLookAt.set(0, 0, 0);
+                }
+            });
+
+            // Hook weather selector
+            document.getElementById('select-weather').addEventListener('change', (e) => {
+                system.setWeather(e.target.value);
+            });
+        });
+    </script>
+</body>
+</html>
