@@ -105,3 +105,4 @@ Quy trình xuất bản một tài nguyên 3D trong Game Nông Trại V3 phải 
 *   **CẤM** tạo cấu trúc GLB giả (fake GLB structure) không tương thích chuẩn GLTF bằng cách ghi đè byte thủ công thiếu kiểm chuẩn.
 *   **CẤM** trùng lặp logic chuyển động (Ví dụ: Vừa thiết lập hoạt cảnh cánh quạt quay trong Blender vừa code JS để xoay cánh quạt đó ở viewer). Chọn 1 trong 2 phương án và tuân thủ quy ước đặt tên.
 *   **CẤM** sử dụng các cấu trúc dữ liệu hình học hoặc chất liệu nặng không được dọn dẹp khi đổi mô hình trên Viewer.
+*   **CẤM TUYỆT ĐỐI** tự ý thực hiện lệnh `git push` lên kho lưu trữ từ xa (remote repository) mà chưa được sự đồng ý hoặc hướng dẫn rõ ràng từ phía người dùng.

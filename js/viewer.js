@@ -109,12 +109,93 @@ class TerrainSystem {
         this.frameCount = 0;
         this.fpsUpdateTime = performance.now();
 
+        // Required by reset button event listener in index.html
+        this.accumulatedShift = new THREE.Vector3(0, 0, 0);
+
+        // Time of Day targets & configs
+        this.timeOfDay = 'noon';
+        this.targetTimeOfDay = 'noon';
+        
+        this.todConfigs = {
+            morning: {
+                skyColor: new THREE.Color(0xfdcb6e), // Soft warm sunrise
+                fogColor: new THREE.Color(0xfdcb6e),
+                fogNear: 150,
+                fogFar: 800,
+                ambientColor: new THREE.Color(0xffeaa7),
+                ambientIntensity: 0.6,
+                sunColor: new THREE.Color(0xe17055),
+                sunIntensity: 1.1,
+                sunPosition: new THREE.Vector3(-250, 120, 100),
+                windowGlow: 0.1,
+                starOpacity: 0.0
+            },
+            noon: {
+                skyColor: new THREE.Color(0xb2e8fa), // Sunny blue sky
+                fogColor: new THREE.Color(0xb2e8fa),
+                fogNear: 250,
+                fogFar: 1200,
+                ambientColor: new THREE.Color(0xdff9fb),
+                ambientIntensity: 0.7,
+                sunColor: new THREE.Color(0xfff8e7),
+                sunIntensity: 1.5,
+                sunPosition: new THREE.Vector3(-150, 250, 150),
+                windowGlow: 0.0,
+                starOpacity: 0.0
+            },
+            afternoon: {
+                skyColor: new THREE.Color(0xe17055), // Warm sunset orange
+                fogColor: new THREE.Color(0xe17055),
+                fogNear: 180,
+                fogFar: 900,
+                ambientColor: new THREE.Color(0xffb8b8),
+                ambientIntensity: 0.5,
+                sunColor: new THREE.Color(0xd63031),
+                sunIntensity: 0.9,
+                sunPosition: new THREE.Vector3(250, 100, 100),
+                windowGlow: 0.4,
+                starOpacity: 0.2
+            },
+            night: {
+                skyColor: new THREE.Color(0x0a1128), // Starry night deep blue
+                fogColor: new THREE.Color(0x0a1128),
+                fogNear: 100,
+                fogFar: 500,
+                ambientColor: new THREE.Color(0x1c2541),
+                ambientIntensity: 0.2,
+                sunColor: new THREE.Color(0x5bc0be), // Pale moonlight
+                sunIntensity: 0.25,
+                sunPosition: new THREE.Vector3(-100, 220, -120),
+                windowGlow: 1.5,
+                starOpacity: 0.95
+            }
+        };
+
+        // Current weather state
+        this.currentWeather = 'sunny';
+        
+        // Gate rotation state
+        this.gateState = 'open'; // starts open matching UI status text
+        this.gateAngle = Math.PI / 2.2;
+        this.targetGateAngle = Math.PI / 2.2;
+
+        // Window glass glowing material (used in createBuildings and lerped in updateTargetLighting)
+        this.glassMat = new THREE.MeshStandardMaterial({
+            color: 0x2c3e50,
+            roughness: 0.1,
+            metalness: 0.9,
+            emissive: new THREE.Color(0xffbb33),
+            emissiveIntensity: 0.0,
+            flatShading: true
+        });
+
         this.initThree();
         this.initLights();
         
         // Build the scene step by step
         this.createTerrain();
         this.createWater();
+        this.createStars();
         this.createRoads();
         this.createBuildings();
         this.createFences();
@@ -164,8 +245,8 @@ class TerrainSystem {
 
     initLights() {
         // Soft ambient light to fill shadows (intensity: 0.6)
-        const ambientLight = new THREE.AmbientLight(0xdff9fb, 0.65);
-        this.scene.add(ambientLight);
+        this.ambientLight = new THREE.AmbientLight(0xdff9fb, 0.65);
+        this.scene.add(this.ambientLight);
 
         // Directional Light (Warm Sunlight) - casts high-res soft shadows
         this.sun = new THREE.DirectionalLight(0xfff8e7, 1.5);
@@ -294,6 +375,59 @@ class TerrainSystem {
         for (let i = 0; i < posAttr.count; i++) {
             this.seaOriginalY[i] = posAttr.getY(i);
         }
+
+        // Sea foam layer: slightly above water level (y: -2.12) to simulate low-poly floating foam
+        this.foamGeo = new THREE.PlaneGeometry(seaWidth, seaLength, 40, 12);
+        this.foamGeo.rotateX(-Math.PI / 2);
+
+        this.foamMat = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.45,
+            flatShading: true,
+            blending: THREE.NormalBlending
+        });
+
+        this.foamMesh = new THREE.Mesh(this.foamGeo, this.foamMat);
+        this.foamMesh.position.set(0, -2.12, 350);
+        this.scene.add(this.foamMesh);
+
+        // Copy of original Y vertices for foam
+        const foamPosAttr = this.foamGeo.attributes.position;
+        this.foamOriginalY = new Float32Array(foamPosAttr.count);
+        for (let i = 0; i < foamPosAttr.count; i++) {
+            this.foamOriginalY[i] = foamPosAttr.getY(i);
+        }
+    }
+
+    createStars() {
+        const starCount = 600;
+        const starGeo = new THREE.BufferGeometry();
+        const positions = new Float32Array(starCount * 3);
+        
+        for (let i = 0; i < starCount; i++) {
+            // Place stars in a large hemisphere dome
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(Math.random() * 0.85); // bias slightly upward
+            const r = 400 + Math.random() * 300;
+            
+            positions[i*3] = r * Math.sin(phi) * Math.cos(theta);
+            positions[i*3+1] = r * Math.cos(phi) + 10;
+            positions[i*3+2] = r * Math.sin(phi) * Math.sin(theta);
+        }
+        
+        starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        
+        this.starMat = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: 2.0,
+            transparent: true,
+            opacity: 0.0,
+            sizeAttenuation: true
+        });
+        
+        this.starField = new THREE.Points(starGeo, this.starMat);
+        this.scene.add(this.starField);
     }
 
     createRoads() {
@@ -527,20 +661,32 @@ class TerrainSystem {
         textPlateBack.rotation.y = Math.PI;
         gateGroup.add(textPlateBack);
 
-        // --- TWO GATE DOORS (Half-Open) ---
+        // --- TWO GATE DOORS (Hinged pivots for animation) ---
         const gateDoorGeo = new THREE.BoxGeometry(7, 5, 0.5);
         
+        // Left gate door pivot at left pillar (x: -8)
+        this.leftGatePivot = new THREE.Group();
+        this.leftGatePivot.position.set(-8, 0, 0);
         const leftGateDoor = new THREE.Mesh(gateDoorGeo, woodMat);
-        leftGateDoor.position.set(-4.5, 3, 0);
-        leftGateDoor.rotation.y = Math.PI / 4; // Swung open inwards
+        leftGateDoor.position.set(3.5, 3, 0); // Offset so hinge is at pivot edge
         leftGateDoor.castShadow = true;
-        gateGroup.add(leftGateDoor);
+        leftGateDoor.receiveShadow = true;
+        this.leftGatePivot.add(leftGateDoor);
+        gateGroup.add(this.leftGatePivot);
 
+        // Right gate door pivot at right pillar (x: 8)
+        this.rightGatePivot = new THREE.Group();
+        this.rightGatePivot.position.set(8, 0, 0);
         const rightGateDoor = new THREE.Mesh(gateDoorGeo, woodMat);
-        rightGateDoor.position.set(4.5, 3, 0);
-        rightGateDoor.rotation.y = -Math.PI / 4; // Swung open inwards
+        rightGateDoor.position.set(-3.5, 3, 0); // Offset so hinge is at pivot edge
         rightGateDoor.castShadow = true;
-        gateGroup.add(rightGateDoor);
+        rightGateDoor.receiveShadow = true;
+        this.rightGatePivot.add(rightGateDoor);
+        gateGroup.add(this.rightGatePivot);
+
+        // Set initial rotations matching active state angle
+        this.leftGatePivot.rotation.y = this.gateAngle;
+        this.rightGatePivot.rotation.y = -this.gateAngle;
 
         this.scene.add(gateGroup);
 
@@ -715,7 +861,7 @@ class TerrainSystem {
         const silverMat = new THREE.MeshStandardMaterial({ color: 0x95a5a6, roughness: 0.4, metalness: 0.6, flatShading: true }); // Silo silver
         const trimWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, flatShading: true });
         const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.9, flatShading: true });
-        const glassMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50, roughness: 0.1, metalness: 0.9, flatShading: true });
+        const glassMat = this.glassMat; // Use shared glowing glassMat from constructor
 
         // --- 1. MAIN HOUSE (Right side) ---
         const houseGroup = new THREE.Group();
@@ -775,6 +921,15 @@ class TerrainSystem {
         barnRoof.scale.set(1.05, 1.0, 1.25);
         barnRoof.castShadow = true;
         barnGroup.add(barnRoof);
+
+        // Barn windows
+        const barnWinGeo = new THREE.BoxGeometry(3.5, 3.5, 0.4);
+        const bw1 = new THREE.Mesh(barnWinGeo, glassMat);
+        bw1.position.set(-6, 11, 13.1);
+        barnGroup.add(bw1);
+        const bw2 = bw1.clone();
+        bw2.position.x = 6;
+        barnGroup.add(bw2);
 
         // White Cross door pattern
         const barnDoorGroup = new THREE.Group();
@@ -973,102 +1128,129 @@ class TerrainSystem {
 
         const cloudMat = this.clouds && this.clouds[0] ? this.clouds[0].children[0].material : null;
 
-        if (mode === 'sunny') {
-            // Sunny sky & lighting
-            this.scene.background.setHex(0xb2e8fa);
-            this.scene.fog.color.setHex(0xb2e8fa);
-            
-            // Clear view
-            this.scene.fog.near = 350;
-            this.scene.fog.far = 1500;
-            
-            this.sun.intensity = 1.5;
-            this.sun.color.setHex(0xfff8e7);
-            
-            if (this.sunVisual) this.sunVisual.material.color.setHex(0xfff6e0);
-            if (this.sunRay) this.sunRay.visible = true;
-
-            // Puffy cloud color: white
-            if (cloudMat) cloudMat.color.setHex(0xffffff);
-
-            // Particles toggling
-            if (this.rainMesh) this.rainMesh.visible = false;
-            if (this.snowMesh) this.snowMesh.visible = false;
-            if (this.dustMesh) this.dustMesh.visible = true;
-            if (this.windMesh) this.windMesh.visible = false;
-        } 
-        else if (mode === 'rainy') {
-            // Dark rainy sky & lighting
-            this.scene.background.setHex(0x6e7882);
-            this.scene.fog.color.setHex(0x6e7882);
-            
-            // Light rainy fog
-            this.scene.fog.near = 250;
-            this.scene.fog.far = 1200;
-
-            this.sun.intensity = 0.35;
-            this.sun.color.setHex(0xa8b5c2);
-
-            if (this.sunVisual) this.sunVisual.material.color.setHex(0x95a5a6);
-            if (this.sunRay) this.sunRay.visible = false;
-
-            // Clouds turn dark grey
-            if (cloudMat) cloudMat.color.setHex(0x50575e);
-
-            // Particles toggling
-            if (this.rainMesh) this.rainMesh.visible = true;
-            if (this.snowMesh) this.snowMesh.visible = false;
-            if (this.dustMesh) this.dustMesh.visible = false;
-            if (this.windMesh) this.windMesh.visible = false;
+        // Clouds color base update
+        if (cloudMat) {
+            if (mode === 'sunny') cloudMat.color.setHex(0xffffff);
+            else if (mode === 'rainy') cloudMat.color.setHex(0x50575e);
+            else if (mode === 'snowy') cloudMat.color.setHex(0xbdc3c7);
+            else if (mode === 'foggy') cloudMat.color.setHex(0x95a5a6);
         }
-        else if (mode === 'snowy') {
-            // Greyish-white snowy sky & lighting
-            this.scene.background.setHex(0xdce6eb);
-            this.scene.fog.color.setHex(0xdce6eb);
-            
-            // Soft snow fog
-            this.scene.fog.near = 250;
-            this.scene.fog.far = 1200;
 
-            this.sun.intensity = 0.6;
-            this.sun.color.setHex(0xdff9fb);
+        // Particle systems visibility toggle
+        if (this.rainMesh) this.rainMesh.visible = (mode === 'rainy');
+        if (this.snowMesh) this.snowMesh.visible = (mode === 'snowy');
+        if (this.dustMesh) this.dustMesh.visible = (mode === 'sunny');
+        if (this.windMesh) this.windMesh.visible = (mode === 'foggy');
+    }
 
-            if (this.sunVisual) this.sunVisual.material.color.setHex(0xeaeaea);
-            if (this.sunRay) this.sunRay.visible = false;
+    setTimeOfDay(time) {
+        this.targetTimeOfDay = time;
+    }
 
-            // Clouds turn light grey
-            if (cloudMat) cloudMat.color.setHex(0xbdc3c7);
-
-            // Particles toggling
-            if (this.rainMesh) this.rainMesh.visible = false;
-            if (this.snowMesh) this.snowMesh.visible = true;
-            if (this.dustMesh) this.dustMesh.visible = false;
-            if (this.windMesh) this.windMesh.visible = false;
+    toggleGate() {
+        if (this.gateState === 'open') {
+            this.gateState = 'closed';
+            this.targetGateAngle = 0;
+        } else {
+            this.gateState = 'open';
+            this.targetGateAngle = Math.PI / 2.2;
         }
-        else if (mode === 'foggy') {
-            // Thick fog sky & lighting
-            this.scene.background.setHex(0xc8d6e5);
-            this.scene.fog.color.setHex(0xc8d6e5);
-            
-            // Soft fog starting at 200 and ending at 900
-            // This leaves the foreground roundabout and farm house fully visible, while the background mountain peak is nicely misty
-            this.scene.fog.near = 200;
-            this.scene.fog.far = 900;
+        return this.gateState === 'open';
+    }
 
-            this.sun.intensity = 0.25;
-            this.sun.color.setHex(0xa5b1be);
+    updateTargetLighting(delta) {
+        const base = this.todConfigs[this.targetTimeOfDay];
+        if (!base) return;
 
-            if (this.sunVisual) this.sunVisual.material.color.setHex(0xb2bec3);
-            if (this.sunRay) this.sunRay.visible = false;
+        // Create target color and numeric states
+        let skyColorTarget = base.skyColor.clone();
+        let fogColorTarget = base.fogColor.clone();
+        let fogNearTarget = base.fogNear;
+        let fogFarTarget = base.fogFar;
+        let ambientColorTarget = base.ambientColor.clone();
+        let ambientIntensityTarget = base.ambientIntensity;
+        let sunColorTarget = base.sunColor.clone();
+        let sunIntensityTarget = base.sunIntensity;
+        let windowGlowTarget = base.windowGlow;
 
-            // Clouds turn grey
-            if (cloudMat) cloudMat.color.setHex(0x95a5a6);
+        // Overlay weather effects on target lighting properties
+        if (this.currentWeather === 'rainy') {
+            const rainColor = new THREE.Color(0x4a5568);
+            skyColorTarget.lerp(rainColor, 0.65);
+            fogColorTarget.lerp(rainColor, 0.65);
+            ambientColorTarget.lerp(rainColor, 0.3);
+            ambientIntensityTarget *= 0.6;
+            sunIntensityTarget *= 0.3;
+            fogNearTarget *= 0.7;
+            fogFarTarget *= 0.8;
+        } else if (this.currentWeather === 'snowy') {
+            const snowColor = new THREE.Color(0xdde6eb);
+            skyColorTarget.lerp(snowColor, 0.5);
+            fogColorTarget.lerp(snowColor, 0.5);
+            ambientIntensityTarget *= 0.85;
+            sunIntensityTarget *= 0.5;
+            fogNearTarget *= 0.65;
+            fogFarTarget *= 0.75;
+        } else if (this.currentWeather === 'foggy') {
+            const fogColor = new THREE.Color(0xa0aec0);
+            skyColorTarget.lerp(fogColor, 0.7);
+            fogColorTarget.lerp(fogColor, 0.8);
+            ambientIntensityTarget *= 0.7;
+            sunIntensityTarget *= 0.2;
+            fogNearTarget = 30;
+            fogFarTarget = 250;
+        }
 
-            // Particles toggling
-            if (this.rainMesh) this.rainMesh.visible = false;
-            if (this.snowMesh) this.snowMesh.visible = false;
-            if (this.dustMesh) this.dustMesh.visible = false;
-            if (this.windMesh) this.windMesh.visible = true;
+        const lerpSpeed = delta * 2.0;
+
+        // Lerp background and fog
+        this.scene.background.lerp(skyColorTarget, lerpSpeed);
+        this.scene.fog.color.lerp(fogColorTarget, lerpSpeed);
+        this.scene.fog.near = THREE.MathUtils.lerp(this.scene.fog.near, fogNearTarget, lerpSpeed);
+        this.scene.fog.far = THREE.MathUtils.lerp(this.scene.fog.far, fogFarTarget, lerpSpeed);
+
+        // Lerp Ambient light
+        if (this.ambientLight) {
+            this.ambientLight.color.lerp(ambientColorTarget, lerpSpeed);
+            this.ambientLight.intensity = THREE.MathUtils.lerp(this.ambientLight.intensity, ambientIntensityTarget, lerpSpeed);
+        }
+
+        // Lerp Sun light
+        if (this.sun) {
+            this.sun.color.lerp(sunColorTarget, lerpSpeed);
+            this.sun.intensity = THREE.MathUtils.lerp(this.sun.intensity, sunIntensityTarget, lerpSpeed);
+            this.sun.position.lerp(base.sunPosition, lerpSpeed);
+
+            // Sync visual sun mesh position and color
+            if (this.sunVisual) {
+                this.sunVisual.position.copy(this.sun.position);
+                this.sunVisual.material.color.lerp(sunColorTarget, lerpSpeed);
+                
+                if (this.targetTimeOfDay === 'night') {
+                    // Moon size and color adjustments
+                    this.sunVisual.material.color.setHex(0xdff9fb);
+                    this.sunVisual.scale.setScalar(0.7);
+                } else {
+                    this.sunVisual.scale.setScalar(1.0);
+                }
+            }
+
+            // Sync visual sun rays rotation and visibility
+            if (this.sunRay) {
+                this.sunRay.position.copy(this.sun.position);
+                this.sunRay.lookAt(new THREE.Vector3(0, 0, 0));
+                
+                if (this.targetTimeOfDay === 'night' || this.currentWeather !== 'sunny') {
+                    this.sunRay.visible = false;
+                } else {
+                    this.sunRay.visible = true;
+                }
+            }
+        }
+
+        // Lerp emissive glow for windows
+        if (this.glassMat) {
+            this.glassMat.emissiveIntensity = THREE.MathUtils.lerp(this.glassMat.emissiveIntensity, windowGlowTarget, lerpSpeed);
         }
     }
 
@@ -1254,6 +1436,9 @@ class TerrainSystem {
             this.controls.update();
         }
 
+        // Smoothly update lighting, sky, fog and window glow
+        this.updateTargetLighting(delta);
+
         // 1. Slow drift for low-poly sky clouds
         if (this.clouds) {
             for (const cloud of this.clouds) {
@@ -1282,6 +1467,19 @@ class TerrainSystem {
             }
             // computeVertexNormals belongs to BufferGeometry, not the attribute
             this.seaGeo.computeVertexNormals();
+            posAttr.needsUpdate = true;
+        }
+
+        // 3b. Animated low-poly sea foam wave layer
+        if (this.foamGeo && this.foamMesh && this.foamOriginalY) {
+            const posAttr = this.foamGeo.attributes.position;
+            for (let i = 0; i < posAttr.count; i++) {
+                const vx = posAttr.getX(i);
+                const vz = posAttr.getZ(i);
+                const wave = Math.sin(vx * 0.042 + now * 0.002) * Math.cos(vz * 0.038 + now * 0.0016) * 1.25;
+                posAttr.setY(i, this.foamOriginalY[i] + wave);
+            }
+            this.foamGeo.computeVertexNormals();
             posAttr.needsUpdate = true;
         }
 
@@ -1402,6 +1600,24 @@ class TerrainSystem {
                 posAttr.setXYZ(posIdx + 1, rx - 30, ry, rz);
             }
             posAttr.needsUpdate = true;
+        }
+
+        // 8. Gate rotation swing animation
+        if (this.leftGatePivot && this.rightGatePivot) {
+            this.gateAngle = THREE.MathUtils.lerp(this.gateAngle, this.targetGateAngle, delta * 3.0);
+            this.leftGatePivot.rotation.y = this.gateAngle;
+            this.rightGatePivot.rotation.y = -this.gateAngle;
+        }
+
+        // 9. Update starfield (opacity lerping and twinkling)
+        if (this.starField && this.starMat) {
+            const targetOpacity = this.todConfigs[this.targetTimeOfDay].starOpacity;
+            this.starMat.opacity = THREE.MathUtils.lerp(this.starMat.opacity, targetOpacity, delta * 2.0);
+            
+            // Subtle twinkling
+            if (this.starMat.opacity > 0.05) {
+                this.starMat.size = 1.6 + Math.sin(now * 0.006) * 0.6;
+            }
         }
 
         this.renderer.render(this.scene, this.camera);
