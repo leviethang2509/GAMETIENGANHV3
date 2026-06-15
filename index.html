@@ -3,14 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>High-Performance Infinite Procedural Terrain System</title>
+    <title>Cozy Farming & English Puzzle Integration</title>
+    <!-- Import Map for bare modules resolution in browser -->
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js"
+      }
+    }
+    </script>
     <link rel="stylesheet" href="style.css">
     <!-- Google Fonts for typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Custom overlays for terrain demo */
+        /* Farming & English Puzzle specific styling */
         .info-panel {
             background: rgba(33, 37, 41, 0.9) !important;
             border: 1px solid #4dabf7;
@@ -39,121 +47,625 @@
             color: #adb5bd;
             line-height: 1.6;
         }
+
+        /* HUD & Progress Styles */
+        .hud-panel {
+            background-color: #1a1d20;
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 15px;
+            border: 1px solid #495057;
+        }
+        .hud-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .hud-row:last-child {
+            margin-bottom: 0;
+        }
+        .bar-container {
+            width: 100%;
+            height: 8px;
+            background-color: #343a40;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .bar-fill {
+            height: 100%;
+            background-color: #ff922b;
+            width: 100%;
+            transition: width 0.3s;
+        }
+        
+        /* Plots Grid styling */
+        .plots-grid-ui {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .plot-ui-card {
+            background-color: #2c3034;
+            border: 1px solid #495057;
+            border-radius: 6px;
+            padding: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .plot-ui-card:hover {
+            background-color: #343a40;
+            border-color: #4dabf7;
+        }
+        .plot-ui-card.selected {
+            border-color: #4dabf7;
+            background-color: rgba(77, 171, 247, 0.15);
+            box-shadow: 0 0 8px rgba(77, 171, 247, 0.2);
+        }
+        .plot-header {
+            font-weight: bold;
+            color: #4dabf7;
+            margin-bottom: 4px;
+            border-bottom: 1px solid #343a40;
+            padding-bottom: 2px;
+        }
+        .plot-body {
+            color: #ced4da;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            border-radius: 4px;
+            margin-top: 4px;
+        }
+        .badge-weed {
+            background-color: #c92a2a;
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1.0; }
+            100% { opacity: 0.7; }
+        }
+
+        /* Typing Minigame Container */
+        .weed-minigame-container {
+            background-color: rgba(201, 42, 42, 0.15);
+            border: 1px solid #c92a2a;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+        }
+        .weed-target {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #ff8787;
+            letter-spacing: 0.1em;
+            margin: 8px 0;
+            text-align: center;
+        }
+        .weed-input-row {
+            display: flex;
+            gap: 8px;
+        }
+        .weed-input-row input {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #495057;
+            background-color: #1a1d20;
+            color: #f8f9fa;
+            font-weight: 600;
+            outline: none;
+        }
+        .weed-input-row input:focus {
+            border-color: #ff8787;
+        }
+        .weed-input-row button {
+            background-color: #c92a2a;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .weed-input-row button:hover {
+            background-color: #a61b1b;
+        }
+
+        .action-btn {
+            flex: 1;
+            background-color: #2b8a3e;
+            color: white;
+            border: none;
+            padding: 8px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .action-btn:hover {
+            background-color: #216f31;
+        }
+        .action-btn:disabled {
+            background-color: #495057;
+            color: #adb5bd;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        /* RADIAL FLOATING SKILLS WHEEL CONTAINER - MODIFIED TO BE HORIZONTAL BAR */
+        .skills-wheel-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: auto;
+            max-width: 95vw;
+            height: auto;
+            z-index: 10;
+            display: flex;
+            gap: 12px;
+            background-color: rgba(20, 22, 24, 0.9);
+            border: 3px solid #40c057;
+            border-radius: 18px;
+            padding: 12px 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .skills-wheel-bg-line {
+            display: none;
+        }
+
+        .skills-wheel-title {
+            position: absolute;
+            top: -34px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1a1d20;
+            border: 2.5px solid #40c057;
+            border-radius: 12px;
+            color: #f8f9fa;
+            font-weight: bold;
+            font-size: 0.8rem;
+            padding: 4px 14px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            white-space: nowrap;
+        }
+
+        /* Skills buttons in row */
+        .skill-node {
+            position: relative !important;
+            width: 75px;
+            height: 75px;
+            border-radius: 14px;
+            background-color: rgba(26, 29, 32, 0.95);
+            border: 3px solid #343a40;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            bottom: auto !important;
+            right: auto !important;
+            left: auto !important;
+        }
+
+        .skill-node:hover {
+            transform: scale(1.1);
+            border-color: #40c057;
+            box-shadow: 0 6px 15px rgba(64, 192, 87, 0.3);
+        }
+
+        .skill-node:active {
+            transform: scale(0.95);
+        }
+
+        .skill-node.active {
+            border-color: #4dabf7;
+            background-color: rgba(77, 171, 247, 0.15);
+            box-shadow: 0 0 12px rgba(77, 171, 247, 0.4);
+        }
+
+        .skill-icon {
+            font-size: 1.6rem;
+            margin-bottom: 2px;
+        }
+
+        .skill-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #adb5bd;
+            white-space: nowrap;
+        }
+
+        /* Responsive skill buttons row on mobile */
+        @media (max-width: 600px) {
+            .skills-wheel-container {
+                gap: 8px;
+                padding: 8px 12px;
+                border-radius: 14px;
+            }
+            .skill-node {
+                width: 55px;
+                height: 55px;
+                border-radius: 10px;
+            }
+            .skill-icon {
+                font-size: 1.2rem;
+            }
+            .skill-label {
+                display: none; /* Hide labels to fit screen */
+            }
+            .skills-wheel-title {
+                font-size: 0.75rem;
+                top: -30px;
+                padding: 3px 10px;
+            }
+        }
+
+        /* Tab panels */
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #343a40;
+        }
+        .tab-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: #adb5bd;
+            padding: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-btn.active {
+            color: #4dabf7;
+            border-bottom-color: #4dabf7;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        .seed-select-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .seed-select-btn {
+            flex: 1;
+            background-color: #2c3034;
+            color: #ced4da;
+            border: 1px solid #495057;
+            border-radius: 4px;
+            padding: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        .seed-select-btn.active {
+            background-color: #1c7ed6;
+            color: white;
+            border-color: #1c7ed6;
+        }
+
+        .shop-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #2c3034;
+            border: 1px solid #495057;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+        }
+        .shop-btn {
+            background-color: #fcc419;
+            color: #1c1d20;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.75rem;
+        }
+        .shop-btn:hover {
+            background-color: #fab005;
+        }
+
+        /* Shake animation for errors */
+        .error-shake {
+            animation: shake 0.3s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Sidebar controls & statistics -->
-        <aside class="sidebar">
-            <header class="sidebar-header">
-                <div class="logo-container">
-                    <span class="logo-emoji">🏔️</span>
-                    <h1>Infinite Terrain</h1>
-                </div>
-                <p class="subtitle">Procedural Web Worker Streaming</p>
-            </header>
+    <!-- Top-right Settings Button -->
+    <button class="settings-toggle-btn" id="btn-settings-toggle" onclick="toggleSettingsPanel()">⚙️ Settings</button>
 
-            <section class="model-info-panel">
-                <h2>Engine Statistics</h2>
-                <div id="terrain-stats">
-                    <p class="placeholder-text">Initializing stats...</p>
-                </div>
-            </section>
-
-            <section class="control-panel">
-                <h2>System Config & Info</h2>
-                <div class="control-group">
-                    <span style="color: #adb5bd;">Interaction Mode:</span>
-                    <span id="camera-mode-val" style="font-weight: 700; color: #4dabf7; text-align: right;">Idle Open-World View</span>
-                </div>
-                <div class="control-group" style="margin-top: 10px;">
-                    <span style="color: #adb5bd;">Weather Mode:</span>
-                    <select id="select-weather" style="background-color: #2c3034; color: #f8f9fa; border: 1px solid #495057; border-radius: 4px; padding: 6px 10px; cursor: pointer; outline: none; width: 55%; font-size: 0.85rem;">
+    <!-- Settings Overlay Panel -->
+    <div id="settings-panel" class="settings-overlay collapsed">
+        <div class="settings-content">
+            <div class="settings-header">
+                <h2>⚙️ Game Settings</h2>
+                <button onclick="toggleSettingsPanel()" class="settings-close-btn">❌</button>
+            </div>
+            <div class="settings-body">
+                <div class="settings-group">
+                    <label>☁️ Weather Mode:</label>
+                    <select id="settings-select-weather">
                         <option value="sunny">Sunny (Nắng)</option>
                         <option value="rainy">Rainy (Mưa)</option>
                         <option value="snowy">Snowy (Tuyết)</option>
                         <option value="foggy">Foggy (Sương mù)</option>
                     </select>
                 </div>
-                <div class="control-group" style="margin-top: 10px;">
-                    <span style="color: #adb5bd;">Time of Day:</span>
-                    <select id="select-time" style="background-color: #2c3034; color: #f8f9fa; border: 1px solid #495057; border-radius: 4px; padding: 6px 10px; cursor: pointer; outline: none; width: 55%; font-size: 0.85rem;">
+                <div class="settings-group">
+                    <label>☀️ Time of Day:</label>
+                    <select id="settings-select-time">
                         <option value="noon">Noon (Trưa)</option>
                         <option value="morning">Morning (Sáng)</option>
                         <option value="afternoon">Afternoon (Chiều)</option>
                         <option value="night">Night (Tối)</option>
                     </select>
                 </div>
-                <div class="control-group" style="margin-top: 10px;">
-                    <span style="color: #adb5bd;">Gate Status:</span>
-                    <button id="btn-toggle-gate" style="background-color: #d38a53; color: white; border: none; border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 0.85rem; width: 55%; font-weight: 600;">Open (Mở)</button>
+                <div class="settings-group">
+                    <label>🔊 Sound Settings:</label>
+                    <div class="sound-control-row">
+                        <button id="btn-toggle-sound" class="settings-action-btn">Mute Sound</button>
+                    </div>
                 </div>
-                
-                <h2 style="margin-top: 20px;">Interaction Controls</h2>
-                <ul class="help-list">
-                    <li><strong>Click / Tap</strong>: Set a target point on the terrain. The camera will smoothly glide towards it.</li>
-                    <li><strong>No Keys Required</strong>: System operates purely via click/tap and includes a slow automatic drift when idle.</li>
-                </ul>
+                <div class="settings-group">
+                    <label>⛩️ Gate Status:</label>
+                    <button id="settings-btn-toggle-gate" class="settings-action-btn" style="background-color: #d38a53;">Open (Mở)</button>
+                </div>
+                <div class="settings-group" style="margin-top: 15px;">
+                    <button id="settings-btn-reset-pos" class="settings-action-btn" style="background-color: #495057;">🔄 Reset Camera</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                <button id="btn-reset-pos">Reset Position</button>
+    <div class="app-container">
+        <!-- Sidebar controls & statistics -->
+        <aside class="sidebar collapsed" id="sidebar-panel">
+            <header class="sidebar-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="logo-container">
+                    <span class="logo-emoji">👩‍🌾</span>
+                    <h1>Cozy Farming</h1>
+                </div>
+                <button id="sidebar-close-btn" class="sidebar-close-btn">❌</button>
+            </header>
+
+            <!-- Resources Player HUD Panel -->
+            <section class="hud-panel-section" style="padding: 15px 24px; border-bottom: 1px solid #343a40;">
+                <div class="hud-panel">
+                    <div class="hud-row">
+                        <span style="color: #fcc419; font-weight: bold; font-size: 1.1rem;">💰 Gold: <span id="player-gold-val">100</span></span>
+                        <span style="color: #ff922b; font-weight: bold;">⚡ Energy: <span id="player-energy-val">100/100</span></span>
+                    </div>
+                    <div class="bar-container">
+                        <div id="player-energy-bar" class="bar-fill"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Navigation Tabs -->
+            <section style="padding: 15px 24px 0 24px; border-bottom: none;">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" onclick="switchTab('farming')">🚜 <span class="tab-text">Farming</span></button>
+                    <button class="tab-btn" onclick="switchTab('shop')">🏪 <span class="tab-text">Seeds & Shop</span></button>
+                </div>
+            </section>
+
+            <!-- Farming Tab Panel -->
+            <section id="tab-farming" class="tab-content active" style="padding: 10px 24px 20px 24px;">
+                <h2>🚜 Farm Plots Grid</h2>
+                
+                <!-- Seed Selection Row -->
+                <div style="font-size: 0.8rem; color: #adb5bd; margin-bottom: 4px;">🌱 Selected seed to plant (Hotkeys 1, 2, 3):</div>
+                <div class="seed-select-row">
+                    <button id="btn-seed-tomato" class="seed-select-btn active">🍅 Tomato [1]</button>
+                    <button id="btn-seed-carrot" class="seed-select-btn">🥕 Carrot [2]</button>
+                    <button id="btn-seed-corn" class="seed-select-btn">🌽 Corn [3]</button>
+                </div>
+
+                <!-- Plot details container loaded dynamically -->
+                <div id="farming-plot-details">
+                    <p class="placeholder-text">Loading plots...</p>
+                </div>
+
+                <!-- English weed typing minigame section -->
+                <div id="weed-minigame-container" class="weed-minigame-container" style="display: none;">
+                    <div style="font-size: 0.8rem; font-weight: bold; color: #ff8787;">⚠️ Plot #<span id="weed-plot-number">1</span> is overgrown with weeds!</div>
+                    <div style="font-size: 0.75rem; color: #adb5bd;">Type this word below to clear the weeds and get rewards:</div>
+                    <div id="weed-target-word" class="weed-target">nature</div>
+                    <div class="weed-input-row">
+                        <input type="text" id="weed-typing-input" placeholder="Type here..." autocomplete="off">
+                        <button id="btn-weed-submit">Clear</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Shop Tab Panel -->
+            <section id="tab-shop" class="tab-content" style="padding: 10px 24px 20px 24px;">
+                <h2>🏪 Seed Shop (Buy seeds)</h2>
+                <div class="shop-row">
+                    <div>
+                        <strong>🍅 Tomato Seed</strong><br>
+                        <span style="font-size: 0.75rem; color: #adb5bd;">Cost: 10 Gold | Grow time: 10s</span>
+                    </div>
+                    <button id="btn-buy-tomato" class="shop-btn">💰 Buy (10g)</button>
+                </div>
+                <div class="shop-row">
+                    <div>
+                        <strong>🥕 Carrot Seed</strong><br>
+                        <span style="font-size: 0.75rem; color: #adb5bd;">Cost: 15 Gold | Grow time: 10s</span>
+                    </div>
+                    <button id="btn-buy-carrot" class="shop-btn">💰 Buy (15g)</button>
+                </div>
+                <div class="shop-row">
+                    <div>
+                        <strong>🌽 Corn Seed</strong><br>
+                        <span style="font-size: 0.75rem; color: #adb5bd;">Cost: 25 Gold | Grow time: 15s</span>
+                    </div>
+                    <button id="btn-buy-corn" class="shop-btn">💰 Buy (25g)</button>
+                </div>
+
+                <h2 style="margin-top: 20px;">💵 Sell Harvested Crops</h2>
+                <div class="shop-row">
+                    <div>
+                        <strong>🍅 Ripe Tomato</strong><br>
+                        <span style="font-size: 0.75rem; color: #adb5bd;">Value: 15 Gold</span>
+                    </div>
+                    <button id="btn-sell-tomato" class="shop-btn" style="background-color: #40c057; color: white;">🪙 Sell</button>
+                </div>
+                <div class="shop-row">
+                    <div>
+                        <strong>🥕 Ripe Carrot</strong><br>
+                        <span style="font-size: 0.75rem; color: #adb5bd;">Value: 20 Gold</span>
+                    </div>
+                    <button id="btn-sell-carrot" class="shop-btn" style="background-color: #40c057; color: white;">🪙 Sell</button>
+                </div>
+                <div class="shop-row">
+                    <div>
+                        <strong>🌽 Ripe Corn</strong><br>
+                        <span style="font-size: 0.75rem; color: #adb5bd;">Value: 35 Gold</span>
+                    </div>
+                    <button id="btn-sell-corn" class="shop-btn" style="background-color: #40c057; color: white;">🪙 Sell</button>
+                </div>
+
+                <h2 style="margin-top: 20px;">🎒 Inventory Details</h2>
+                <div class="hud-panel" style="font-size: 0.8rem;">
+                    <div><strong>Seeds in Inventory:</strong></div>
+                    <div id="player-seeds-val" style="color: #4dabf7; margin-bottom: 8px;">Tomatoes: 5 | Carrots: 5 | Corns: 3</div>
+                    <div><strong>Harvested Crops:</strong></div>
+                    <div id="player-crops-val" style="color: #40c057;">Tomatoes: 0 | Carrots: 0 | Corns: 0</div>
+                </div>
             </section>
 
             <footer class="sidebar-footer">
                 <p>&copy; 2026 Game Nông Trại V3</p>
-                <p class="tech-stack">Three.js / Web Workers / Coherent Noise</p>
+                <div id="terrain-stats" class="tech-stack" style="font-size: 0.75rem; color: #868e96; margin-top: 5px;">Three.js PCFSoft</div>
             </footer>
         </aside>
+
         <!-- Main 3D View Container -->
         <main class="viewer-container">
             <div id="canvas-container"></div>
             
+            <!-- Radial Floating Skills Wheel -->
+            <div class="skills-wheel-container">
+                <div class="skills-wheel-bg-line"></div>
+                <div class="skills-wheel-title">Farming Skills</div>
+                
+                <div class="skill-node" onclick="window.gameApp.handlePlow()">
+                    <span class="skill-icon">⛏️</span>
+                    <span class="skill-label">Tilling [P]</span>
+                </div>
+                <div class="skill-node" onclick="window.gameApp.handlePlant()">
+                    <span class="skill-icon">🌱</span>
+                    <span class="skill-label">Seeding [L]</span>
+                </div>
+                <div class="skill-node" onclick="window.gameApp.handleWater()">
+                    <span class="skill-icon">🪣</span>
+                    <span class="skill-label">Watering [K]</span>
+                </div>
+                <div class="skill-node" onclick="window.gameApp.toggleWeedingMode()">
+                    <span class="skill-icon">🌿</span>
+                    <span class="skill-label">Weeding</span>
+                </div>
+                <div class="skill-node" onclick="window.gameApp.handleHarvest()">
+                    <span class="skill-icon">🧺</span>
+                    <span class="skill-label">Harvesting [H]</span>
+                </div>
+                <div class="skill-node" onclick="window.gameApp.handleFertilizing()">
+                    <span class="skill-icon">🌾</span>
+                    <span class="skill-label">Fertilizing</span>
+                </div>
+            </div>
+
             <!-- Navigation Guide Overlay at the bottom -->
             <div class="navigation-guide">
-                <p>🏔️ Click/Tap on the terrain to guide the camera. Let it sit idle to drift slowly.</p>
+                <p>🏔️ Glide camera by clicking terrain. 💡 Tip: Click Merchant, Seed Seller, or Barn model in 3D scene to open Shop!</p>
             </div>
         </main>
     </div>
 
-    <!-- Load Three.js core via CDN -->
+    <!-- Load Three.js core and OrbitControls via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     
     <!-- Load our self-contained terrain system script -->
     <script src="js/viewer.js"></script>
     
-    <!-- Launch the application -->
+    <!-- Launch the application orchestrator as ES Module -->
+    <script type="module" src="js/main.js"></script>
+
     <script>
-        window.addEventListener('DOMContentLoaded', () => {
-            const system = new TerrainSystem('canvas-container', 'terrain-stats');
+        // Toggle Settings Panel overlay visibility
+        window.toggleSettingsPanel = function() {
+            const settingsPanel = document.getElementById('settings-panel');
+            if (settingsPanel) {
+                settingsPanel.classList.toggle('collapsed');
+            }
+            if (window.gameApp && window.gameApp.soundSystem) {
+                window.gameApp.soundSystem.playSFX('click');
+            }
+        };
+
+        // Tab switching UI logic helper
+        function switchTab(tabName) {
+            const tabs = document.querySelectorAll('.tab-content');
+            const buttons = document.querySelectorAll('.tab-btn');
             
-            // Hook reset button
-            document.getElementById('btn-reset-pos').addEventListener('click', () => {
-                system.camera.position.set(0, 100, 160);
-                system.accumulatedShift.set(0, 0, 0);
-                if (system.inputController) {
-                    system.inputController.targetCameraPosition.set(0, 100, 160);
-                    system.inputController.targetLookAt.set(0, 0, 0);
-                    system.inputController.currentLookAt.set(0, 0, 0);
+            tabs.forEach(tab => {
+                if (tab.id === 'tab-' + tabName) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
                 }
             });
 
-            // Hook weather selector
-            document.getElementById('select-weather').addEventListener('change', (e) => {
-                system.setWeather(e.target.value);
+            buttons.forEach(btn => {
+                if (btn.innerText.toLowerCase().includes(tabName)) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
             });
 
-            // Hook time selector
-            document.getElementById('select-time').addEventListener('change', (e) => {
-                system.setTimeOfDay(e.target.value);
-            });
-
-            // Hook gate toggle button
-            document.getElementById('btn-toggle-gate').addEventListener('click', (e) => {
-                const isOpen = system.toggleGate();
-                e.target.textContent = isOpen ? "Open (Mở)" : "Closed (Đóng)";
-                e.target.style.backgroundColor = isOpen ? "#d38a53" : "#7f5a3c";
-            });
-        });
+            if (window.gameApp && window.gameApp.soundSystem) {
+                window.gameApp.soundSystem.playSFX('click');
+            }
+        }
     </script>
 </body>
 </html>

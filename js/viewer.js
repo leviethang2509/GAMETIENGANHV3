@@ -1620,6 +1620,14 @@ class TerrainSystem {
             }
         }
 
+        // 10. Update external adapters (AssetPresenter & SoundSystem updates)
+        if (this.assetPresenter) {
+            this.assetPresenter.update(delta);
+        }
+        if (this.soundSystem) {
+            this.soundSystem.updateListener(this.camera);
+        }
+
         this.renderer.render(this.scene, this.camera);
         this.updateUI();
     }

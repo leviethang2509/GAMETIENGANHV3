@@ -106,3 +106,22 @@ Quy trình xuất bản một tài nguyên 3D trong Game Nông Trại V3 phải 
 *   **CẤM** trùng lặp logic chuyển động (Ví dụ: Vừa thiết lập hoạt cảnh cánh quạt quay trong Blender vừa code JS để xoay cánh quạt đó ở viewer). Chọn 1 trong 2 phương án và tuân thủ quy ước đặt tên.
 *   **CẤM** sử dụng các cấu trúc dữ liệu hình học hoặc chất liệu nặng không được dọn dẹp khi đổi mô hình trên Viewer.
 *   **CẤM TUYỆT ĐỐI** tự ý thực hiện lệnh `git push` lên kho lưu trữ từ xa (remote repository) mà chưa được sự đồng ý hoặc hướng dẫn rõ ràng từ phía người dùng.
+
+---
+
+## 8. Quy tắc Ghi nhận Lịch sử Phát triển Chương 1 (Development History Rules for Chapter 1)
+
+*   **Lập Kế hoạch (Planning)**: Trước khi thực hiện bất kỳ nhiệm vụ (task) nào thuộc Chương 1, bắt buộc phải viết kế hoạch cụ thể với cú pháp tiêu đề là `PLAN_CHUONG1_X` (ví dụ: `PLAN_CHUONG1_1`).
+*   **Ghi nhận Thực hiện (Execution Log)**: Sau khi thực hiện xong nhiệm vụ, phải ghi nhận kết quả thực hiện cụ thể với cú pháp tiêu đề là `_THUCHIEN_CHUONG1_X` (ví dụ: `_THUCHIEN_CHUONG1_1`) vào tệp `AI_DEV_HISTORY.md`.
+*   Thực hiện tuần tự từng phần, kiểm thử kỹ lưỡng, tránh làm dồn dập nhiều phần một lúc dẫn đến nghẽn hoặc lỗi hệ thống.
+
+---
+
+## 9. Quy tắc Quản lý Mục tiêu & Kế hoạch Tái sử dụng từng Chương (Chapter Management Rules)
+
+*   **Tạo tài liệu mục tiêu riêng biệt**: Mỗi chương/giai đoạn phát triển bắt buộc phải có một tệp mục tiêu độc lập đặt tên theo định dạng `CHAPTER_[X]_GOALS.md` (ví dụ: `CHAPTER_2_GOALS.md`).
+*   **Yêu cầu về nội dung**: Tệp này bắt buộc phải bao gồm đầy đủ 3 phần:
+    1.  **Mục tiêu cần đạt được (Objectives)**: Mô tả rõ ràng các đích cần hướng tới cho chương đó.
+    2.  **Kế hoạch triển khai (Implementation Plan)**: Các bước kỹ thuật cụ thể để đạt mục tiêu.
+    3.  **Ghi nhận Thực hiện & Lịch sử (Development & Reuse History)**: Nhật ký quá trình cài đặt thực tế và hướng dẫn chi tiết cách tái sử dụng mã nguồn/hạ tầng đã xây dựng cho tương lai.
+*   **Cập nhật quy tắc**: Mọi sửa đổi hoặc bổ sung chương mới sau này phải tuân thủ nghiêm ngặt mô hình này để đảm bảo khả năng tái sử dụng tối đa của mã nguồn.

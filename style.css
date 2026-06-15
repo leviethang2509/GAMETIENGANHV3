@@ -11,7 +11,7 @@ body, html {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: #1a1c1e;
+    background-color: #111214;
     color: #e3e2e6;
 }
 
@@ -22,23 +22,241 @@ body, html {
     height: 100vh;
 }
 
-/* SIDEBAR BÊN TRÁI */
-.sidebar {
-    width: 380px;
-    background-color: #212529;
-    border-right: 1px solid #343a40;
+/* TOP RIGHT SETTINGS BUTTON */
+.settings-toggle-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    border-radius: 30px;
+    background-color: rgba(26, 29, 32, 0.9);
+    color: #f8f9fa;
+    border: 2px solid #4dabf7;
+    font-size: 0.95rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 30;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    transition: all 0.2s ease;
+}
+
+.settings-toggle-btn:hover {
+    background-color: #4dabf7;
+    color: #1a1d20;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(77, 171, 247, 0.4);
+}
+
+.settings-toggle-btn:active {
+    transform: translateY(0);
+}
+
+/* SETTINGS OVERLAY PANEL */
+.settings-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.settings-overlay.collapsed {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.settings-content {
+    background-color: rgba(20, 22, 24, 0.98);
+    border: 3px solid #4dabf7;
+    border-radius: 20px;
+    width: 450px;
+    max-width: 90vw;
+    padding: 24px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+    animation: zoomIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes zoomIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #343a40;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+}
+
+.settings-header h2 {
+    color: #4dabf7;
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.settings-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    color: #adb5bd;
+    transition: color 0.2s;
+}
+
+.settings-close-btn:hover {
+    color: #ff6b6b;
+}
+
+.settings-body {
     display: flex;
     flex-direction: column;
-    z-index: 10;
-    box-shadow: 4px 0 15px rgba(0,0,0,0.3);
+    gap: 16px;
+}
+
+.settings-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.settings-group label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #ced4da;
+}
+
+.settings-group select {
+    background-color: #1a1d20;
+    color: #f8f9fa;
+    border: 1px solid #495057;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.settings-group select:focus {
+    border-color: #4dabf7;
+}
+
+.sound-control-row {
+    display: flex;
+    gap: 10px;
+}
+
+.settings-action-btn {
+    flex: 1;
+    background-color: #2b8a3e;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    font-size: 0.9rem;
+}
+
+.settings-action-btn:hover {
+    background-color: #216f31;
+}
+
+.settings-action-btn:active {
+    transform: scale(0.98);
+}
+
+/* SIDEBAR BÊN TRÁI - COLLAPSIBLE FLOATING OVERLAY PANEL */
+.sidebar {
+    width: 500px;
+    height: 500px;
+    max-width: 90vw;
+    max-height: 90vh;
+    aspect-ratio: 1 / 1;
+    background-color: rgba(20, 22, 24, 0.98);
+    border: 2.5px solid #4dabf7;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.75);
     overflow-y: auto;
+    overflow-x: hidden;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    backdrop-filter: blur(15px);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    opacity: 1;
+}
+
+/* Custom Scrollbar for the sidebar */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+.sidebar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+}
+.sidebar::-webkit-scrollbar-thumb {
+    background: #495057;
+    border-radius: 3px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: #4dabf7;
+}
+
+/* Collapsed class to hide sidebar slide out */
+.sidebar.collapsed {
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Sidebar Close Button Style */
+.sidebar-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    color: #adb5bd;
+    transition: color 0.2s, transform 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-close-btn:hover {
+    color: #ff6b6b;
+    transform: scale(1.15);
 }
 
 /* Sidebar Header */
 .sidebar-header {
-    padding: 24px;
-    border-bottom: 1px solid #343a40;
-    background-color: #1a1d20;
+    padding: 20px;
+    border-bottom: 2px solid #2b3035;
+    background-color: rgba(20, 22, 24, 0.98);
 }
 
 .logo-container {
@@ -48,14 +266,16 @@ body, html {
 }
 
 .logo-emoji {
-    font-size: 2rem;
+    font-size: 2.2rem;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
 }
 
 .sidebar-header h1 {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
     font-weight: 700;
     color: #4dabf7;
     margin: 0;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.4);
 }
 
 .subtitle {
@@ -66,8 +286,8 @@ body, html {
 
 /* Các section trong sidebar */
 .sidebar section {
-    padding: 20px 24px;
-    border-bottom: 1px solid #343a40;
+    padding: 16px 20px;
+    border-bottom: 1px solid #2b3035;
 }
 
 .sidebar h2 {
@@ -75,52 +295,11 @@ body, html {
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: #adb5bd;
-    margin-bottom: 14px;
-    font-weight: 600;
-}
-
-/* Danh sách mô hình */
-.model-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.model-item {
+    margin-bottom: 12px;
+    font-weight: 700;
     display: flex;
     align-items: center;
-    padding: 12px 16px;
-    background-color: #2c3034;
-    border: 1px solid transparent;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-}
-
-.model-item:hover {
-    background-color: #343a40;
-    border-color: #495057;
-}
-
-.model-item.active {
-    background-color: rgba(77, 171, 247, 0.15);
-    border-color: #4dabf7;
-    box-shadow: 0 0 10px rgba(77, 171, 247, 0.2);
-}
-
-.model-icon {
-    font-size: 1.5rem;
-    margin-right: 14px;
-}
-
-.model-name {
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: #f8f9fa;
-}
-
-.model-item.active .model-name {
-    color: #4dabf7;
+    gap: 6px;
 }
 
 /* Bảng thông tin chi tiết */
@@ -161,12 +340,19 @@ body, html {
 .info-desc {
     margin-top: 10px;
     padding-top: 10px;
-    border-top: 1px solid #343a40;
+    border-top: 1px solid #2b3035;
     color: #ced4da;
     font-size: 0.85rem;
 }
 
 /* Control Panel */
+.control-panel {
+    background-color: rgba(20, 22, 24, 0.7);
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 10px;
+}
+
 .control-group {
     display: flex;
     justify-content: space-between;
@@ -200,6 +386,7 @@ body, html {
     width: 60%;
     cursor: pointer;
     outline: none;
+    font-weight: 600;
 }
 
 .control-group select:disabled {
@@ -209,19 +396,19 @@ body, html {
 
 /* Sidebar Footer */
 .sidebar-footer {
-    padding: 20px 24px;
+    padding: 16px 20px;
     margin-top: auto;
     font-size: 0.8rem;
     color: #6c757d;
     text-align: center;
-    background-color: #1a1d20;
-    border-top: 1px solid #343a40;
+    background-color: rgba(20, 22, 24, 0.98);
+    border-top: 2px solid #2b3035;
 }
 
 .tech-stack {
-    color: #495057;
+    color: #4dabf7;
     margin-top: 4px;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 /* VIEWER BÊN PHẢI */
@@ -277,32 +464,94 @@ body, html {
 .navigation-guide {
     position: absolute;
     bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(33, 37, 41, 0.85);
+    right: 20px;
+    background-color: rgba(20, 22, 24, 0.85);
     border: 1px solid #495057;
     border-radius: 30px;
     padding: 10px 24px;
     color: #e3e2e6;
     font-size: 0.85rem;
-    font-weight: 500;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     pointer-events: none;
     z-index: 5;
+    backdrop-filter: blur(5px);
 }
 
-/* Responsive */
+/* MOBILE RESPONSIVE OPTIMIZATION - SIDEBAR BECOMES GAME OVERLAYS */
 @media (max-width: 900px) {
     .app-container {
-        flex-direction: column-reverse;
+        flex-direction: column;
     }
-    .sidebar {
-        width: 100%;
-        height: 40vh;
-        border-right: none;
-        border-top: 1px solid #343a40;
-    }
+    
     .viewer-container {
-        height: 60vh;
+        height: 100vh;
+        width: 100vw;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1;
     }
+
+    /* Floating collapsible overlay on mobile */
+    .sidebar {
+        width: 90vw;
+        max-width: 380px;
+        height: auto;
+        max-height: 75vh;
+        position: absolute;
+        bottom: 20px;
+        left: 5vw;
+        top: auto;
+        border-radius: 16px;
+        background-color: rgba(20, 22, 24, 0.96);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.7);
+        transform: translateY(0);
+        max-height: calc(100vh - 100px);
+    }
+
+    .sidebar.collapsed {
+        transform: translateY(120%);
+        opacity: 0;
+    }
+
+    .sidebar-header {
+        padding: 10px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .sidebar-header .subtitle {
+        display: none; /* Hide subtitles on mobile to save space */
+    }
+
+    .navigation-guide {
+        display: none; /* Hide camera hint on mobile */
+    }
+
+    /* Make grid scrollable on mobile */
+    .plots-grid-ui {
+        grid-template-columns: repeat(3, 1fr);
+        max-height: 140px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+    .sidebar section {
+        padding: 10px 16px;
+    }
+}
+
+/* Touch friendly elements and icons styling */
+.action-icon {
+    font-size: 1.2rem;
+    margin-right: 6px;
+}
+
+.tab-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 }
